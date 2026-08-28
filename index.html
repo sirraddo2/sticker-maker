@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sticker Maker</title>
+<meta name="theme-color" content="#3d1e6d">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --green:#0f9d6b; --green-dark:#0b6e4f; --gold:#e8b93f; --purple:#3d1e6d; --purple-dark:#1b0e2e;
+    --bg:#f7f4fb; --card:#ffffff; --text:#1f1330; --muted:#6f6280; --border:#e6e0f0;
+  }
+  [data-theme="dark"]{
+    --green:#17b881; --green-dark:#0f9d6b; --gold:#f2c94c; --purple:#5a2fa0; --purple-dark:#0d0620;
+    --bg:#0d0620; --card:#1a1030; --text:#f1ecfb; --muted:#a89bc4; --border:#2e2050;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:40px;}
+  header{position:relative;background:linear-gradient(135deg,var(--purple),var(--purple-dark));background-image:linear-gradient(135deg,var(--purple),var(--purple-dark)),repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0px,rgba(255,255,255,.05) 2px,transparent 2px,transparent 14px);color:#fff;padding:22px 54px 26px;text-align:center;border-bottom:4px solid var(--gold);}
+  header h1{margin:0 0 4px;font-size:clamp(1rem, 4.6vw, 1.25rem);}
+  header p{margin:0;font-size:.8rem;opacity:.9;}
+  .theme-toggle{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  main{max-width:560px;margin:14px auto 0;padding:0 14px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+  label{display:block;font-size:.82rem;color:var(--muted);margin:10px 0 5px;}
+  input, select{display:block;width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg);color:var(--text);font-family:inherit;}
+  input[type="color"]{padding:4px;height:44px;cursor:pointer;}
+  input[type="range"]{padding:0;}
+  .btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:600;font-size:.9rem;cursor:pointer;margin-top:10px;}
+  .btn.primary{background:var(--green);color:#fff;border-color:var(--green);}
+  .btn.gold{background:var(--gold);color:#3a2c00;border-color:var(--gold);}
+  .btn.danger{background:none;color:#e35a4f;border-color:#e35a4f;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .action-row{display:flex;gap:8px;}
+  .action-row .btn{flex:1;}
+  .toggle-row{display:flex;gap:8px;margin-top:6px;}
+  .toggle-row button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-weight:600;font-size:.82rem;cursor:pointer;}
+  .toggle-row button.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .canvas-wrap{display:flex;justify-content:center;margin:14px 0;position:relative;}
+  .checker-bg{background-image:linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0px;border-radius:12px;}
+  #workCanvas{max-width:100%;border-radius:12px;border:1px solid var(--border);touch-action:none;cursor:crosshair;}
+  .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:30px 14px;text-align:center;color:var(--muted);cursor:pointer;}
+  .upload-zone input{display:none;}
+  .slider-row{display:flex;align-items:center;gap:10px;margin-top:6px;}
+  .slider-row span{font-size:.78rem;color:var(--muted);min-width:34px;text-align:right;}
+  .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+  .preset-btn{padding:10px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;}
+  .preset-btn small{display:block;font-weight:400;color:var(--muted);font-size:.68rem;margin-top:2px;}
+  .preset-btn.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .preset-btn.active small{color:rgba(255,255,255,.85);}
+  .note-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:10px;}
+  .hidden{display:none !important;}
+  .size-status{font-size:.78rem;color:var(--muted);text-align:center;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+  <h1>✂️ Sticker Maker</h1>
+  <p>Cut out, outline &amp; export for WhatsApp, Telegram &amp; more</p>
+</header>
+
+<main>
+  <!-- UPLOAD -->
+  <div class="card" id="uploadCard">
+    <label class="upload-zone" id="uploadZone">
+      📷 Tap to choose a photo
+      <input type="file" id="fileInput" accept="image/*">
+    </label>
+  </div>
+
+  <!-- EDITOR (hidden until an image is loaded) -->
+  <div id="editorSection" class="hidden">
+    <div class="card">
+      <div class="canvas-wrap checker-bg">
+        <canvas id="workCanvas"></canvas>
+      </div>
+
+      <label>Background Removal</label>
+      <div class="slider-row">
+        <input type="range" id="toleranceSlider" min="5" max="120" value="45" style="flex:1;">
+        <span id="toleranceVal">45</span>
+      </div>
+      <div class="action-row">
+        <button class="btn primary" id="removeBgBtn">✨ Remove Background</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+      </div>
+
+      <label style="margin-top:16px;">Touch-Up Brush</label>
+      <div class="toggle-row" id="brushModeRow">
+        <button data-mode="erase" class="active">Erase</button>
+        <button data-mode="restore">Restore</button>
+      </div>
+      <div class="slider-row">
+        <span style="min-width:50px;">Size</span>
+        <input type="range" id="brushSize" min="4" max="60" value="18" style="flex:1;">
+        <span id="brushSizeVal">18</span>
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin:6px 0 0;">Drag on the image above to manually clean up edges — Erase removes, Restore brings pixels back.</p>
+    </div>
+
+    <div class="card">
+      <div class="row2" style="align-items:center;">
+        <label style="margin:0;">Die-Cut Outline</label>
+        <div class="toggle-row" style="margin:0;">
+          <button id="outlineOffBtn" data-on="0" class="active">Off</button>
+          <button id="outlineOnBtn" data-on="1">On</button>
+        </div>
+      </div>
+      <div id="outlineOptions" class="hidden">
+        <div class="row2">
+          <div>
+            <label style="margin-top:0;">Color</label>
+            <input type="color" id="outlineColor" value="#ffffff">
+          </div>
+          <div>
+            <label style="margin-top:0;">Width: <span id="outlineWidthVal">10</span>px</label>
+            <input type="range" id="outlineWidth" min="2" max="30" value="10">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label style="margin-top:0;">Export For</label>
+      <div class="preset-grid" id="presetGrid"></div>
+      <div class="row2" style="margin-top:10px;">
+        <div class="checkbox-row" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="marginToggle" style="width:auto;">
+          <label style="margin:0;" for="marginToggle">Add safe margin</label>
+        </div>
+        <select id="formatSelect">
+          <option value="png">PNG</option>
+          <option value="webp">WebP</option>
+        </select>
+      </div>
+      <button class="btn gold" id="exportBtn">⬇️ Download Sticker</button>
+      <div class="size-status" id="sizeStatus"></div>
+      <div class="note-box" id="presetNote"></div>
+    </div>
+
+    <button class="btn danger" id="startOverBtn" style="margin-bottom:10px;">Start Over With New Photo</button>
+  </div>
+
+  <p style="font-size:.75rem;color:var(--muted);text-align:center;margin-top:6px;">Tip: "Add to Home Screen" from your browser menu to use this offline like a normal app (after first load).</p>
+</main>
+
+<script>
+  // ---- Theme ----
+  const themeToggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+  function applyTheme(t){
+    if(t === 'dark'){ root.setAttribute('data-theme','dark'); themeToggle.textContent = '☀️'; }
+    else { root.removeAttribute('data-theme'); themeToggle.textContent = '🌙'; }
+  }
+  applyTheme(localStorage.getItem('sticker-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  themeToggle.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem('sticker-theme', next);
+  });
+
+  // ================= CORE PIXEL ALGORITHMS =================
+  // (Verified with unit tests before shipping — see project notes.)
+
+  function colorDist(r1,g1,b1,r2,g2,b2){
+    return Math.sqrt((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2);
+  }
+
+  function removeBackgroundFloodFill(data, width, height, tolerance){
+    const corners = [[0,0],[width-1,0],[0,height-1],[width-1,height-1]];
+    let sr=0, sg=0, sb=0;
+    corners.forEach(([x,y]) => {
+      const i = (y*width+x)*4;
+      sr += data[i]; sg += data[i+1]; sb += data[i+2];
+    });
+    const bgR = sr/4, bgG = sg/4, bgB = sb/4;
+    const visited = new Uint8Array(width*height);
+    const queue = [];
+
+    function tryEnqueue(x, y){
+      if(x < 0 || x >= width || y < 0 || y >= height) return;
+      const idx = y*width+x;
+      if(visited[idx]) return;
+      visited[idx] = 1;
+      const i = idx*4;
+      if(colorDist(data[i], data[i+1], data[i+2], bgR, bgG, bgB) <= tolerance){
+        data[i+3] = 0;
+        queue.push([x,y]);
+      }
+    }
+    for(let x = 0; x < width; x++){ tryEnqueue(x, 0); tryEnqueue(x, height-1); }
+    for(let y = 0; y < height; y++){ tryEnqueue(0, y); tryEnqueue(width-1, y); }
+    while(queue.length){
+      const [x, y] = queue.pop();
+      tryEnqueue(x+1,y); tryEnqueue(x-1,y); tryEnqueue(x,y+1); tryEnqueue(x,y-1);
+    }
+  }
+
+  function getContentBoundingBox(data, width, height, alphaThreshold){
+    let minX = width, minY = height, maxX = -1, maxY = -1;
+    for(let y = 0; y < height; y++){
+      for(let x = 0; x < width; x++){
+        if(data[(y*width+x)*4+3] > alphaThreshold){
+          if(x < minX) minX = x;
+          if(x > maxX) maxX = x;
+          if(y < minY) minY = y;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < 0) return null;
+    return { x:minX, y:minY, width:maxX-minX+1, height:maxY-minY+1 };
+  }
+
+  // ================= APP STATE =================
+  const workCanvas = document.getElementById('workCanvas');
+  const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+  let originalImageBitmap = null; // pristine upload, for Reset
+  const MAX_WORK_DIM = 900;
+
+  function loadImageOntoWorkCanvas(img){
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, MAX_WORK_DIM / Math.max(w, h));
+    w = Math.round(w * scale); h = Math.round(h * scale);
+    workCanvas.width = w; workCanvas.height = h;
+    const displayScale = Math.min(1, (Math.min(360, window.innerWidth - 60)) / w);
+    workCanvas.style.width = Math.round(w * displayScale) + 'px';
+    workCtx.clearRect(0, 0, w, h);
+    workCtx.drawImage(img, 0, 0, w, h);
+    document.getElementById('uploadCard').classList.add('hidden');
+    document.getElementById('editorSection').classList.remove('hidden');
+  }
+
+  document.getElementById('uploadZone').addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+      originalImageBitmap = img;
+      loadImageOntoWorkCanvas(img);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  document.getElementById('startOverBtn').addEventListener('click', () => {
+    document.getElementById('editorSection').classList.add('hidden');
+    document.getElementById('uploadCard').classList.remove('hidden');
+    document.getElementById('fileInput').value = '';
+    originalImageBitmap = null;
+  });
+
+  // ---- Background removal ----
+  const toleranceSlider = document.getElementById('toleranceSlider');
+  toleranceSlider.addEventListener('input', () => {
+    document.getElementById('toleranceVal').textContent = toleranceSlider.value;
+  });
+
+  document.getElementById('removeBgBtn').addEventListener('click', () => {
+    const w = workCanvas.width, h = workCanvas.height;
+    const imgData = workCtx.getImageData(0, 0, w, h);
+    removeBackgroundFloodFill(imgData.data, w, h, Number(toleranceSlider.value));
+    workCtx.putImageData(imgData, 0, 0);
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if(originalImageBitmap) loadImageOntoWorkCanvas(originalImageBitmap);
+  });
+
+  // ---- Touch-up brush ----
+  let brushMode = 'erase';
+  document.querySelectorAll('#brushModeRow button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      brushMode = btn.dataset.mode;
+      document.querySelectorAll('#brushModeRow button').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+  const brushSizeEl = document.getElementById('brushSize');
+  brushSizeEl.addEventListener('input', () => {
+    document.getElementById('brushSizeVal').textContent = brushSizeEl.value;
+  });
+
+  let isDrawing = false;
+
+  function canvasCoordsFromEvent(e){
+    const rect = workCanvas.getBoundingClientRect();
+    const scaleX = workCanvas.width / rect.width;
+    const scaleY = workCanvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  function applyBrush(x, y){
+    const w = workCanvas.width, h = workCanvas.height;
+    const radius = Number(brushSizeEl.value);
+    const imgData = workCtx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const minX = Math.max(0, Math.floor(x - radius)), maxX = Math.min(w-1, Math.ceil(x + radius));
+    const minY = Math.max(0, Math.floor(y - radius)), maxY = Math.min(h-1, Math.ceil(y + radius));
+    for(let py = minY; py <= maxY; py++){
+      for(let px = minX; px <= maxX; px++){
+        if((px-x)**2 + (py-y)**2 <= radius*radius){
+          const i = (py*w+px)*4 + 3;
+          data[i] = brushMode === 'erase' ? 0 : 255;
+        }
+      }
+    }
+    workCtx.putImageData(imgData, 0, 0);
+  }
+
+  ['mousedown','touchstart'].forEach(evt => workCanvas.addEventListener(evt, (e) => {
+    e.preventDefault();
+    isDrawing = true;
+    const { x, y } = canvasCoordsFromEvent(e);
+    applyBrush(x, y);
+  }));
+  ['mousemove','touchmove'].forEach(evt => workCanvas.addEventListener(evt, (e) => {
+    if(!isDrawing) return;
+    e.preventDefault();
+    const { x, y } = canvasCoordsFromEvent(e);
+    applyBrush(x, y);
+  }));
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => workCanvas.addEventListener(evt, () => { isDrawing = false; }));
+
+  // ---- Outline toggle ----
+  let outlineOn = false;
+  document.getElementById('outlineOffBtn').addEventListener('click', () => {
+    outlineOn = false;
+    document.getElementById('outlineOffBtn').classList.add('active');
+    document.getElementById('outlineOnBtn').classList.remove('active');
+    document.getElementById('outlineOptions').classList.add('hidden');
+  });
+  document.getElementById('outlineOnBtn').addEventListener('click', () => {
+    outlineOn = true;
+    document.getElementById('outlineOnBtn').classList.add('active');
+    document.getElementById('outlineOffBtn').classList.remove('active');
+    document.getElementById('outlineOptions').classList.remove('hidden');
+  });
+  document.getElementById('outlineWidth').addEventListener('input', (e) => {
+    document.getElementById('outlineWidthVal').textContent = e.target.value;
+  });
+
+  // ================= EXPORT PRESETS =================
+  // Sizes verified against each platform's current published/documented specs.
+  const PRESETS = [
+    { id: 'whatsapp', label: 'WhatsApp', size: 512, margin: 16, maxKB: 100, note: 'WhatsApp stickers must be exactly 512×512px, ideally under 100KB. WhatsApp officially requires WebP for the final upload — download as WebP here, or PNG if you plan to convert it yourself.' },
+    { id: 'telegram', label: 'Telegram', size: 512, margin: 0, maxKB: 512, note: 'Telegram wants one side exactly 512px (square recommended), PNG or WebP, transparent background, under 512KB.' },
+    { id: 'signal', label: 'Signal', size: 512, margin: 16, maxKB: null, note: 'Signal recommends 512×512px with a transparent background and a 16px margin, as PNG or WebP.' },
+    { id: 'imessage', label: 'iMessage', size: 618, margin: 0, maxKB: null, note: "Apple's large iMessage sticker size is 618×618px, transparent PNG. (iMessage also supports smaller 300×300 and 408×408 sizes if you need those instead.)" },
+    { id: 'discord-sticker', label: 'Discord Sticker', size: 320, margin: 0, maxKB: 512, note: 'Discord server stickers are 320×320px, PNG/APNG, under 512KB.' },
+    { id: 'discord-emoji', label: 'Discord Emoji', size: 128, margin: 0, maxKB: 256, note: 'Discord emoji are 128×128px, under 256KB.' },
+    { id: 'messenger', label: 'Messenger', size: 512, margin: 0, maxKB: null, note: "Facebook Messenger doesn't publish as strict a spec as WhatsApp/Telegram — 512×512px transparent PNG is a safe, widely-compatible default." }
+  ];
+
+  let selectedPreset = PRESETS[0];
+  const presetGrid = document.getElementById('presetGrid');
+  PRESETS.forEach((p, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (idx === 0 ? ' active' : '');
+    btn.innerHTML = `${p.label}<small>${p.size}×${p.size}px</small>`;
+    btn.addEventListener('click', () => {
+      selectedPreset = p;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('marginToggle').checked = p.margin > 0;
+      updatePresetNote();
+    });
+    presetGrid.appendChild(btn);
+  });
+  document.getElementById('marginToggle').checked = PRESETS[0].margin > 0;
+
+  function updatePresetNote(){
+    document.getElementById('presetNote').textContent = selectedPreset.note;
+  }
+  updatePresetNote();
+
+  // ---- Compose final export canvas: auto-crop to content, fit into target
+  // size with optional margin, add outline if enabled ----
+  function buildExportCanvas(){
+    const w = workCanvas.width, h = workCanvas.height;
+    const imgData = workCtx.getImageData(0, 0, w, h);
+    const box = getContentBoundingBox(imgData.data, w, h, 10) || { x:0, y:0, width:w, height:h };
+
+    const target = selectedPreset.size;
+    const margin = document.getElementById('marginToggle').checked ? selectedPreset.margin : 0;
+    const drawArea = target - margin * 2;
+
+    const scale = Math.min(drawArea / box.width, drawArea / box.height);
+    const destW = box.width * scale, destH = box.height * scale;
+    const destX = (target - destW) / 2, destY = (target - destH) / 2;
+
+    // Cropped-to-content cutout, at native resolution
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = box.width; cropCanvas.height = box.height;
+    cropCanvas.getContext('2d').putImageData(imgData, -box.x, -box.y, box.x, box.y, box.width, box.height);
+
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = target; outCanvas.height = target;
+    const outCtx = outCanvas.getContext('2d');
+
+    if(outlineOn){
+      const outlineWidthPx = Number(document.getElementById('outlineWidth').value) * (scale);
+      const silCanvas = document.createElement('canvas');
+      silCanvas.width = Math.round(destW); silCanvas.height = Math.round(destH);
+      const silCtx = silCanvas.getContext('2d');
+      silCtx.drawImage(cropCanvas, 0, 0, box.width, box.height, 0, 0, destW, destH);
+      silCtx.globalCompositeOperation = 'source-in';
+      silCtx.fillStyle = document.getElementById('outlineColor').value;
+      silCtx.fillRect(0, 0, destW, destH);
+
+      const steps = 28;
+      for(let k = 0; k < steps; k++){
+        const angle = (k / steps) * Math.PI * 2;
+        const ox = Math.cos(angle) * outlineWidthPx;
+        const oy = Math.sin(angle) * outlineWidthPx;
+        outCtx.drawImage(silCanvas, destX + ox, destY + oy);
+      }
+    }
+
+    outCtx.drawImage(cropCanvas, 0, 0, box.width, box.height, destX, destY, destW, destH);
+    return outCanvas;
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const outCanvas = buildExportCanvas();
+    const format = document.getElementById('formatSelect').value;
+    const mime = format === 'webp' ? 'image/webp' : 'image/png';
+
+    outCanvas.toBlob((blob) => {
+      if(!blob){ alert('Could not generate the image. Try PNG instead.'); return; }
+      if(format === 'webp'){
+        // Confirm the browser actually produced WebP (some browsers silently fall back to PNG).
+        const testUrl = outCanvas.toDataURL('image/webp');
+        if(!testUrl.startsWith('data:image/webp')){
+          alert("Your browser doesn't support exporting WebP directly — downloading as PNG instead. You can convert it to WebP with any online converter before uploading.");
+        }
+      }
+      const sizeKB = Math.round(blob.size / 1024);
+      let statusMsg = `${selectedPreset.size}×${selectedPreset.size}px · ${sizeKB}KB`;
+      if(selectedPreset.maxKB && sizeKB > selectedPreset.maxKB){
+        statusMsg += ` ⚠️ over the ${selectedPreset.maxKB}KB ${selectedPreset.label} limit — try simplifying the image or a smaller outline.`;
+      }
+      document.getElementById('sizeStatus').textContent = statusMsg;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sticker-${selectedPreset.id}-${Date.now()}.${format === 'webp' ? 'webp' : 'png'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, mime, 0.92);
+  });
+
+  // ---- PWA service worker ----
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+</script>
+
+</body>
+</html>
