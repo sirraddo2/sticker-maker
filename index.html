@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sticker Bench — Multi-Platform Sticker Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF7EC;
+    --ink:#221F1A;
+    --ink-soft:#5B564C;
+    --mat:#DCEFE8;
+    --mat-line:#A9CFC6;
+    --pink:#FF5C7A;
+    --purple:#6C4CFA;
+    --purple-dark:#5238C9;
+    --lime:#B6E33D;
+    --paper-edge:#EDE6D6;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+
+  header{
+    padding:22px 20px 10px;
+    text-align:center;
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:clamp(24px,4vw,32px);
+    font-weight:700;
+    letter-spacing:-0.02em;
+  }
+  header h1 span{color:var(--pink);}
+  header p{margin:0;color:var(--ink-soft);font-size:14px;}
+
+  .app{
+    max-width:920px;
+    margin:0 auto;
+    padding:16px;
+    display:grid;
+    grid-template-columns:1.15fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:760px){
+    .app{grid-template-columns:1fr;}
+  }
+
+  /* ---- Workspace (cutting mat) ---- */
+  .workspace{
+    background:var(--mat);
+    border-radius:var(--radius);
+    padding:22px 18px 18px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 1px 0 rgba(0,0,0,0.04) inset;
+  }
+  .workspace::before{ /* ruler ticks top */
+    content:"";
+    position:absolute;top:0;left:0;right:0;height:10px;
+    background-image:repeating-linear-gradient(90deg, var(--mat-line) 0 1px, transparent 1px 12px);
+    opacity:0.9;
+  }
+  .workspace::after{ /* ruler ticks left */
+    content:"";
+    position:absolute;top:0;left:0;bottom:0;width:10px;
+    background-image:repeating-linear-gradient(0deg, var(--mat-line) 0 1px, transparent 1px 12px);
+    opacity:0.9;
+  }
+  .stage-wrap{
+    display:flex;
+    justify-content:center;
+    margin-top:6px;
+  }
+  .stage-outer{
+    position:relative;
+    width:280px;
+    max-width:80vw;
+  }
+  #stage{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:20px;
+    touch-action:none;
+    cursor:grab;
+    background:
+      linear-gradient(45deg,#eef6f2 25%,transparent 25%) -10px 0/20px 20px,
+      linear-gradient(-45deg,#eef6f2 25%,transparent 25%) -10px 0/20px 20px,
+      linear-gradient(45deg,transparent 75%,#eef6f2 75%) -10px 0/20px 20px,
+      linear-gradient(-45deg,transparent 75%,#eef6f2 75%) -10px 0/20px 20px,
+      #ffffff;
+    box-shadow:0 6px 18px rgba(34,31,26,0.14);
+  }
+  #stage:active{cursor:grabbing;}
+
+  .drop-hint{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;
+    border-radius:20px;
+    border:2px dashed #9FC9C0;
+    pointer-events:none;
+    color:var(--ink-soft);
+    font-size:13px;
+    text-align:center;
+    padding:12px;
+  }
+  .drop-hint b{font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink);}
+
+  .file-btn{
+    display:block;
+    margin:14px auto 0;
+    padding:10px 18px;
+    border-radius:999px;
+    border:none;
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .file-btn:hover{background:#3a352c;}
+
+  /* ---- Tabs / controls ---- */
+  .panel{
+    background:#fff;
+    border-radius:var(--radius);
+    padding:16px;
+    box-shadow:0 1px 3px rgba(34,31,26,0.06);
+  }
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--paper-edge);
+  }
+  .tab{
+    flex:1;
+    background:none;border:none;
+    padding:8px 4px 10px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  label.ctrl{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin:12px 0 6px;
+  }
+  label.ctrl:first-child{margin-top:0;}
+  input[type=range]{width:100%;accent-color:var(--purple);}
+  input[type=text]{
+    width:100%;
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid var(--paper-edge);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+  }
+  .row{display:flex;gap:10px;align-items:center;}
+  .swatch{
+    width:26px;height:26px;border-radius:50%;
+    border:2px solid #fff;box-shadow:0 0 0 1px var(--paper-edge);
+    cursor:pointer;
+  }
+  .swatch.selected{box-shadow:0 0 0 2px var(--purple);}
+  input[type=color]{
+    width:34px;height:34px;border:none;background:none;padding:0;cursor:pointer;
+  }
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;}
+  .switch{
+    position:relative;width:42px;height:24px;
+    background:#E3DECF;border-radius:99px;cursor:pointer;transition:background .15s;
+  }
+  .switch.on{background:var(--purple);}
+  .switch::after{
+    content:"";position:absolute;top:3px;left:3px;
+    width:18px;height:18px;border-radius:50%;background:#fff;
+    transition:transform .15s;
+  }
+  .switch.on::after{transform:translateX(18px);}
+
+  .mini-btn{
+    background:var(--paper-edge);
+    border:none;border-radius:8px;
+    padding:6px 10px;font-size:12px;font-weight:600;
+    cursor:pointer;color:var(--ink);
+  }
+  .mini-btn:hover{background:#e2d9c2;}
+
+  .hint{font-size:11px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+
+  /* ---- export panel ---- */
+  .export-box{margin-top:14px;padding-top:14px;border-top:1px solid var(--paper-edge);}
+  .size-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:600;
+    padding:4px 10px;border-radius:999px;
+    background:var(--lime);color:#2c3d0a;
+  }
+  .size-badge.warn{background:#FFD9A0;color:#5a3a05;}
+  .btn-primary{
+    width:100%;margin-top:10px;
+    padding:12px;border:none;border-radius:12px;
+    background:var(--pink);color:#fff;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;
+    cursor:pointer;
+  }
+  .btn-primary:hover{background:#ff4569;}
+  .btn-secondary{
+    width:100%;margin-top:8px;
+    padding:11px;border-radius:12px;
+    border:2px solid var(--ink);background:none;color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;
+    cursor:pointer;
+  }
+  .btn-secondary:hover{background:var(--ink);color:#fff;}
+
+  /* ---- pack tray ---- */
+  .tray{
+    background:#fff;border-radius:var(--radius);
+    padding:16px;margin-top:18px;
+    box-shadow:0 1px 3px rgba(34,31,26,0.06);
+    grid-column:1/-1;
+  }
+  .tray-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .tray-head h3{margin:0;font-size:15px;}
+  .tray-strip{
+    display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;
+  }
+  .tray-item{
+    position:relative;flex:0 0 auto;
+    width:76px;height:76px;border-radius:12px;
+    background:
+      linear-gradient(45deg,#f1f1f1 25%,transparent 25%) 0 0/12px 12px,
+      linear-gradient(-45deg,#f1f1f1 25%,transparent 25%) 0 0/12px 12px,#fff;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--paper-edge);
+  }
+  .tray-item img{width:100%;height:100%;object-fit:contain;border-radius:11px;}
+  .tray-item button{
+    position:absolute;top:-6px;right:-6px;
+    width:20px;height:20px;border-radius:50%;
+    border:none;background:var(--ink);color:#fff;
+    font-size:12px;line-height:1;cursor:pointer;
+  }
+  .tray-empty{color:var(--ink-soft);font-size:13px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sticker <span>Bench</span></h1>
+  <p>Frame a photo, cut the caption in, export for WhatsApp, Telegram, Signal, iMessage, Discord and more.</p>
+</header>
+
+<div class="app">
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+    <div class="stage-wrap">
+      <div class="stage-outer">
+        <canvas id="stage" width="512" height="512"></canvas>
+        <div class="drop-hint" id="dropHint">
+          <b>Drop a photo here</b>
+          <span>or tap browse below · PNG with a transparent background gives the classic die-cut edge</span>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none;">
+    <button class="file-btn" id="browseBtn">Browse a photo</button>
+    <p class="hint" style="text-align:center;">Drag on the sticker to reposition once a photo is loaded.</p>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="cutout">Cutout</button>
+      <button class="tab" data-tab="position">Position</button>
+      <button class="tab" data-tab="outline">Outline</button>
+      <button class="tab" data-tab="caption">Caption</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-cutout">
+      <label class="ctrl">Edge sensitivity</label>
+      <input type="range" id="cutoutTolerance" min="5" max="80" value="30">
+      <p class="hint">Works best on a plain or solid-colour backdrop. Raise sensitivity for shadows or slight colour variation; lower it if the cutout starts eating into your subject.</p>
+      <div class="row" style="margin-top:10px;">
+        <button class="mini-btn" id="removeBgBtn">Remove background</button>
+        <button class="mini-btn" id="restoreBgBtn">Restore original</button>
+      </div>
+      <p class="hint" id="cutoutStatus"></p>
+    </div>
+
+    <div class="tab-panel" id="tab-position">
+      <label class="ctrl">Zoom</label>
+      <input type="range" id="zoom" min="50" max="300" value="100">
+      <label class="ctrl">Rotate</label>
+      <input type="range" id="rotate" min="-45" max="45" value="0">
+      <button class="mini-btn" id="resetPos" style="margin-top:12px;">Reset position</button>
+    </div>
+
+    <div class="tab-panel" id="tab-outline">
+      <div class="toggle-row">
+        <label class="ctrl" style="margin:0;">White die-cut outline</label>
+        <div class="switch on" id="outlineSwitch"></div>
+      </div>
+      <label class="ctrl">Outline thickness</label>
+      <input type="range" id="outlineWidth" min="6" max="40" value="20">
+      <p class="hint">Uses the photo's transparent edges to trace an outline, like real WhatsApp stickers. A regular rectangular photo will just get a soft framed border instead.</p>
+    </div>
+
+    <div class="tab-panel" id="tab-caption">
+      <label class="ctrl">Caption text</label>
+      <input type="text" id="captionText" placeholder="e.g. MOOD" maxlength="28">
+      <label class="ctrl">Size</label>
+      <input type="range" id="captionSize" min="24" max="110" value="60">
+      <label class="ctrl">Vertical position</label>
+      <input type="range" id="captionY" min="40" max="500" value="450">
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label class="ctrl" style="margin-bottom:4px;">Fill</label>
+          <input type="color" id="captionColor" value="#221f1a">
+        </div>
+        <div>
+          <label class="ctrl" style="margin-bottom:4px;">Outline</label>
+          <input type="color" id="captionStroke" value="#ffffff">
+        </div>
+      </div>
+    </div>
+
+    <div class="export-box">
+      <label class="ctrl">Platform</label>
+      <select id="platformSelect">
+        <option value="whatsapp">WhatsApp</option>
+        <option value="telegram">Telegram</option>
+        <option value="signal">Signal</option>
+        <option value="imessage">iMessage / Messages</option>
+        <option value="discord">Discord</option>
+        <option value="messenger">Facebook Messenger</option>
+        <option value="generic">Generic (transparent PNG)</option>
+      </select>
+      <p class="hint" id="platformNote"></p>
+
+      <div class="row" style="justify-content:space-between;margin-top:10px;">
+        <label class="ctrl" id="qualityLabel" style="margin:0;">WebP quality</label>
+        <span class="size-badge" id="sizeBadge">— KB</span>
+      </div>
+      <input type="range" id="quality" min="30" max="100" value="85">
+      <button class="btn-primary" id="downloadBtn">Download sticker</button>
+      <button class="btn-secondary" id="addPackBtn">Add to sticker pack</button>
+    </div>
+  </div>
+
+  <!-- PACK TRAY -->
+  <div class="tray">
+    <div class="tray-head">
+      <h3>Sticker pack</h3>
+      <button class="mini-btn" id="downloadZip">Download all (.zip)</button>
+    </div>
+    <div class="tray-strip" id="trayStrip">
+      <span class="tray-empty">Stickers you add will line up here.</span>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  const dropHint = document.getElementById('dropHint');
+  const fileInput = document.getElementById('fileInput');
+  const browseBtn = document.getElementById('browseBtn');
+  const stageOuter = document.querySelector('.stage-outer');
+
+  const PLATFORM_PRESETS = {
+    whatsapp:  {label:'WhatsApp',              size:512, format:'webp', maxKB:100,  note:'Static WebP, 512×512, ideally under 100KB.'},
+    telegram:  {label:'Telegram',              size:512, format:'webp', maxKB:512,  note:'Static WebP, 512×512, under 512KB.'},
+    signal:    {label:'Signal',                size:512, format:'webp', maxKB:300,  note:'WebP, 512×512, under ~300KB recommended.'},
+    imessage:  {label:'iMessage / Messages',   size:618, format:'png',  maxKB:500,  note:'Transparent PNG, up to 618×618, under 500KB.'},
+    discord:   {label:'Discord',               size:320, format:'png', maxKB:500,  note:'Transparent PNG, 320×320, under 500KB (static stickers only).'},
+    messenger: {label:'Facebook Messenger',    size:512, format:'png', maxKB:1000, note:'Transparent PNG, 512×512.'},
+    generic:   {label:'Generic',               size:512, format:'png', maxKB:null, note:'512×512 transparent PNG — a safe default for most apps.'}
+  };
+
+  const state = {
+    img:null, originalImg:null, baseScale:1,
+    scale:1, offsetX:0, offsetY:0, rotation:0,
+    outline:{enabled:true, width:20},
+    caption:{text:'', size:60, y:450, color:'#221f1a', stroke:'#ffffff'},
+    quality:0.85,
+    platform:'whatsapp',
+    pack:[]
+  };
+
+  function roundRectPath(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y);
+    c.arcTo(x+w,y,x+w,y+h,r);
+    c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r);
+    c.arcTo(x,y,x+w,y,r);
+    c.closePath();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,512,512);
+    if(!state.img){
+      dropHint.style.display='flex';
+      return;
+    }
+    dropHint.style.display='none';
+
+    const pad = state.outline.enabled ? state.outline.width : 0;
+    const inner = 512 - pad*2;
+    const radius = state.outline.enabled ? 46 : 0;
+
+    // draw subject onto offscreen, clipped to inner rounded rect
+    const off = document.createElement('canvas');
+    off.width=512; off.height=512;
+    const offCtx = off.getContext('2d');
+    offCtx.save();
+    if(state.outline.enabled){
+      roundRectPath(offCtx, pad, pad, inner, inner, radius);
+      offCtx.clip();
+    }
+    offCtx.translate(256+state.offsetX, 256+state.offsetY);
+    offCtx.rotate(state.rotation*Math.PI/180);
+    offCtx.scale(state.scale*state.baseScale, state.scale*state.baseScale);
+    offCtx.drawImage(state.img, -state.img.width/2, -state.img.height/2);
+    offCtx.restore();
+
+    if(state.outline.enabled){
+      // build white silhouette from alpha channel
+      const sil = document.createElement('canvas');
+      sil.width=512; sil.height=512;
+      const silCtx = sil.getContext('2d');
+      silCtx.drawImage(off,0,0);
+      silCtx.globalCompositeOperation='source-in';
+      silCtx.fillStyle='#ffffff';
+      silCtx.fillRect(0,0,512,512);
+
+      const steps=20;
+      const w = state.outline.width;
+      for(let i=0;i<steps;i++){
+        const a = (i/steps)*Math.PI*2;
+        const dx = Math.cos(a)*w;
+        const dy = Math.sin(a)*w;
+        ctx.drawImage(sil, dx, dy);
+      }
+    }
+    ctx.drawImage(off,0,0);
+
+    if(state.caption.text){
+      ctx.textAlign='center';
+      ctx.font = `700 ${state.caption.size}px 'Space Grotesk', sans-serif`;
+      ctx.lineJoin='round';
+      ctx.strokeStyle = state.caption.stroke;
+      ctx.lineWidth = Math.max(4, state.caption.size*0.12);
+      ctx.strokeText(state.caption.text, 256, state.caption.y);
+      ctx.fillStyle = state.caption.color;
+      ctx.fillText(state.caption.text, 256, state.caption.y);
+    }
+
+    scheduleSizeCheck();
+  }
+
+  // --- image loading ---
+  function loadImage(file){
+    if(!file || !file.type.startsWith('image/')) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      state.img = img;
+      state.originalImg = img;
+      state.baseScale = Math.max(512/img.width, 512/img.height);
+      state.scale=1; state.offsetX=0; state.offsetY=0; state.rotation=0;
+      document.getElementById('zoom').value=100;
+      document.getElementById('rotate').value=0;
+      document.getElementById('cutoutStatus').textContent='';
+      draw();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+  browseBtn.addEventListener('click', ()=>fileInput.click());
+  fileInput.addEventListener('change', e=>loadImage(e.target.files[0]));
+  ['dragover','dragenter'].forEach(ev=>{
+    stageOuter.addEventListener(ev, e=>{e.preventDefault();});
+  });
+  stageOuter.addEventListener('drop', e=>{
+    e.preventDefault();
+    loadImage(e.dataTransfer.files[0]);
+  });
+
+  // --- drag to pan ---
+  let dragging=false, lastX=0, lastY=0;
+  canvas.addEventListener('pointerdown', e=>{
+    if(!state.img) return;
+    dragging=true; lastX=e.clientX; lastY=e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleF = 512/rect.width;
+    state.offsetX += (e.clientX-lastX)*scaleF;
+    state.offsetY += (e.clientY-lastY)*scaleF;
+    lastX=e.clientX; lastY=e.clientY;
+    draw();
+  });
+  canvas.addEventListener('pointerup', ()=>dragging=false);
+  canvas.addEventListener('pointercancel', ()=>dragging=false);
+
+  // --- automatic background removal (flood fill from the corners) ---
+  function featherAlpha(data,w,h){
+    const alpha = new Uint8ClampedArray(w*h);
+    for(let p=0;p<w*h;p++) alpha[p]=data[p*4+3];
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const p=y*w+x;
+        const a=alpha[p];
+        // only smooth pixels that sit on an edge (mixed neighborhood) to keep flat regions crisp
+        let onEdge=false;
+        for(let dy=-1;dy<=1 && !onEdge;dy++){
+          for(let dx=-1;dx<=1;dx++){
+            const nx=x+dx, ny=y+dy;
+            if(nx<0||ny<0||nx>=w||ny>=h) continue;
+            if(alpha[ny*w+nx]!==a){ onEdge=true; break; }
+          }
+        }
+        if(!onEdge) continue;
+        let sum=0,count=0;
+        for(let dy=-1;dy<=1;dy++){
+          for(let dx=-1;dx<=1;dx++){
+            const nx=x+dx, ny=y+dy;
+            if(nx<0||ny<0||nx>=w||ny>=h) continue;
+            sum+=alpha[ny*w+nx]; count++;
+          }
+        }
+        data[p*4+3] = sum/count;
+      }
+    }
+  }
+
+  function removeBackground(tolerance){
+    const maxDim = 900;
+    const srcW = state.originalImg.naturalWidth || state.originalImg.width;
+    const srcH = state.originalImg.naturalHeight || state.originalImg.height;
+    const scale = Math.min(1, maxDim/Math.max(srcW,srcH));
+    const w = Math.max(1,Math.round(srcW*scale));
+    const h = Math.max(1,Math.round(srcH*scale));
+    const work = document.createElement('canvas');
+    work.width=w; work.height=h;
+    const wctx = work.getContext('2d');
+    wctx.drawImage(state.originalImg,0,0,w,h);
+    const imgData = wctx.getImageData(0,0,w,h);
+    const data = imgData.data;
+    const visited = new Uint8Array(w*h);
+    const thresh = tolerance*4.5;
+
+    const idx=(x,y)=>y*w+x;
+    const dist=(i,r,g,b)=>{
+      const dr=data[i*4]-r, dg=data[i*4+1]-g, db=data[i*4+2]-b;
+      return Math.sqrt(dr*dr+dg*dg+db*db);
+    };
+
+    [[0,0],[w-1,0],[0,h-1],[w-1,h-1]].forEach(([sx,sy])=>{
+      const si = idx(sx,sy);
+      if(visited[si]) return;
+      const r0=data[si*4], g0=data[si*4+1], b0=data[si*4+2];
+      const stack=[[sx,sy]];
+      visited[si]=1;
+      while(stack.length){
+        const [x,y] = stack.pop();
+        data[idx(x,y)*4+3]=0;
+        const neighbors=[[x+1,y],[x-1,y],[x,y+1],[x,y-1]];
+        for(const [nx,ny] of neighbors){
+          if(nx<0||ny<0||nx>=w||ny>=h) continue;
+          const ni = idx(nx,ny);
+          if(visited[ni]) continue;
+          if(dist(ni,r0,g0,b0) <= thresh){
+            visited[ni]=1;
+            stack.push([nx,ny]);
+          }
+        }
+      }
+    });
+
+    featherAlpha(data,w,h);
+    wctx.putImageData(imgData,0,0);
+    return work;
+  }
+
+  document.getElementById('removeBgBtn').addEventListener('click', ()=>{
+    if(!state.originalImg) return;
+    const status = document.getElementById('cutoutStatus');
+    status.textContent = 'Processing…';
+    setTimeout(()=>{
+      const tol = Number(document.getElementById('cutoutTolerance').value);
+      const result = removeBackground(tol);
+      state.img = result;
+      state.baseScale = Math.max(512/result.width, 512/result.height);
+      status.textContent = 'Background removed. Head to Outline to frame the cutout.';
+      draw();
+    }, 20);
+  });
+  document.getElementById('restoreBgBtn').addEventListener('click', ()=>{
+    if(!state.originalImg) return;
+    state.img = state.originalImg;
+    state.baseScale = Math.max(512/state.originalImg.width, 512/state.originalImg.height);
+    document.getElementById('cutoutStatus').textContent = 'Restored the original photo.';
+    draw();
+  });
+
+  // --- tabs ---
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // --- position controls ---
+  document.getElementById('zoom').addEventListener('input', e=>{
+    state.scale = e.target.value/100; draw();
+  });
+  document.getElementById('rotate').addEventListener('input', e=>{
+    state.rotation = Number(e.target.value); draw();
+  });
+  document.getElementById('resetPos').addEventListener('click', ()=>{
+    state.scale=1; state.offsetX=0; state.offsetY=0; state.rotation=0;
+    document.getElementById('zoom').value=100;
+    document.getElementById('rotate').value=0;
+    draw();
+  });
+
+  // --- outline controls ---
+  const outlineSwitch = document.getElementById('outlineSwitch');
+  outlineSwitch.addEventListener('click', ()=>{
+    state.outline.enabled = !state.outline.enabled;
+    outlineSwitch.classList.toggle('on', state.outline.enabled);
+    draw();
+  });
+  document.getElementById('outlineWidth').addEventListener('input', e=>{
+    state.outline.width = Number(e.target.value); draw();
+  });
+
+  // --- caption controls ---
+  document.getElementById('captionText').addEventListener('input', e=>{
+    state.caption.text = e.target.value; draw();
+  });
+  document.getElementById('captionSize').addEventListener('input', e=>{
+    state.caption.size = Number(e.target.value); draw();
+  });
+  document.getElementById('captionY').addEventListener('input', e=>{
+    state.caption.y = Number(e.target.value); draw();
+  });
+  document.getElementById('captionColor').addEventListener('input', e=>{
+    state.caption.color = e.target.value; draw();
+  });
+  document.getElementById('captionStroke').addEventListener('input', e=>{
+    state.caption.stroke = e.target.value; draw();
+  });
+
+  // --- platform-aware export ---
+  function exportBlob(cb){
+    const preset = PLATFORM_PRESETS[state.platform];
+    const size = preset.size;
+    const exp = document.createElement('canvas');
+    exp.width=size; exp.height=size;
+    const ex = exp.getContext('2d');
+    ex.imageSmoothingEnabled = true;
+    ex.imageSmoothingQuality = 'high';
+    ex.drawImage(canvas,0,0,512,512,0,0,size,size);
+    const mime = preset.format==='webp' ? 'image/webp' : 'image/png';
+    exp.toBlob(cb, mime, preset.format==='webp' ? state.quality : undefined);
+  }
+
+  const platformSelect = document.getElementById('platformSelect');
+  const platformNote = document.getElementById('platformNote');
+  const qualityLabel = document.getElementById('qualityLabel');
+  const qualityInputEl = document.getElementById('quality');
+  function applyPlatformUI(){
+    const preset = PLATFORM_PRESETS[state.platform];
+    platformNote.textContent = preset.note;
+    const isWebp = preset.format==='webp';
+    qualityLabel.textContent = isWebp ? 'WebP quality' : 'File size';
+    qualityInputEl.style.display = isWebp ? 'block' : 'none';
+    scheduleSizeCheck();
+  }
+  platformSelect.addEventListener('change', e=>{
+    state.platform = e.target.value;
+    applyPlatformUI();
+  });
+
+  // --- quality / size estimate ---
+  const qualityInput = document.getElementById('quality');
+  const sizeBadge = document.getElementById('sizeBadge');
+  qualityInput.addEventListener('input', e=>{
+    state.quality = e.target.value/100; scheduleSizeCheck();
+  });
+  let sizeTimer=null;
+  function scheduleSizeCheck(){
+    clearTimeout(sizeTimer);
+    sizeTimer = setTimeout(()=>{
+      exportBlob(blob=>{
+        if(!blob) return;
+        const kb = Math.round(blob.size/1024);
+        const maxKB = PLATFORM_PRESETS[state.platform].maxKB;
+        sizeBadge.textContent = kb+' KB';
+        sizeBadge.classList.toggle('warn', maxKB!==null && kb>maxKB);
+      });
+    }, 150);
+  }
+  applyPlatformUI();
+
+  // --- download single sticker ---
+  document.getElementById('downloadBtn').addEventListener('click', ()=>{
+    const preset = PLATFORM_PRESETS[state.platform];
+    const ext = preset.format==='webp' ? 'webp' : 'png';
+    exportBlob(blob=>{
+      if(!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sticker.'+ext;
+      a.click();
+    });
+  });
+
+  // --- pack tray ---
+  const trayStrip = document.getElementById('trayStrip');
+  function renderTray(){
+    trayStrip.innerHTML='';
+    if(state.pack.length===0){
+      trayStrip.innerHTML = '<span class="tray-empty">Stickers you add will line up here.</span>';
+      return;
+    }
+    state.pack.forEach(item=>{
+      const div = document.createElement('div');
+      div.className='tray-item';
+      const img = document.createElement('img');
+      img.src = item.url;
+      const btn = document.createElement('button');
+      btn.textContent='×';
+      btn.addEventListener('click', ()=>{
+        state.pack = state.pack.filter(p=>p.id!==item.id);
+        renderTray();
+      });
+      div.appendChild(img);
+      div.appendChild(btn);
+      div.addEventListener('click', e=>{
+        if(e.target===btn) return;
+        const a = document.createElement('a');
+        a.href = item.url;
+        a.download = 'sticker-'+item.id+'.'+item.ext;
+        a.click();
+      });
+      trayStrip.appendChild(div);
+    });
+  }
+  document.getElementById('addPackBtn').addEventListener('click', ()=>{
+    if(!state.img){ return; }
+    const preset = PLATFORM_PRESETS[state.platform];
+    const ext = preset.format==='webp' ? 'webp' : 'png';
+    exportBlob(blob=>{
+      if(!blob) return;
+      const url = URL.createObjectURL(blob);
+      state.pack.push({id:Date.now(), url, blob, ext});
+      renderTray();
+    });
+  });
+  document.getElementById('downloadZip').addEventListener('click', async ()=>{
+    if(state.pack.length===0) return;
+    const zip = new JSZip();
+    state.pack.forEach((item,i)=>{
+      zip.file(`sticker-${i+1}.${item.ext}`, item.blob);
+    });
+    const content = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'sticker-pack.zip';
+    a.click();
+  });
+
+  draw();
+})();
+</script>
+</body>
+</html>
