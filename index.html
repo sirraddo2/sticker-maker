@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sticker Maker</title>
+<meta name="theme-color" content="#3d1e6d">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --green:#0f9d6b; --green-dark:#0b6e4f; --gold:#e8b93f; --purple:#3d1e6d; --purple-dark:#1b0e2e;
+    --bg:#f7f4fb; --card:#ffffff; --text:#1f1330; --muted:#6f6280; --border:#e6e0f0;
+  }
+  [data-theme="dark"]{
+    --green:#17b881; --green-dark:#0f9d6b; --gold:#f2c94c; --purple:#5a2fa0; --purple-dark:#0d0620;
+    --bg:#0d0620; --card:#1a1030; --text:#f1ecfb; --muted:#a89bc4; --border:#2e2050;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:40px;}
+  header{position:relative;background:linear-gradient(135deg,var(--purple),var(--purple-dark));background-image:linear-gradient(135deg,var(--purple),var(--purple-dark)),repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0px,rgba(255,255,255,.05) 2px,transparent 2px,transparent 14px);color:#fff;padding:22px 54px 26px;text-align:center;border-bottom:4px solid var(--gold);}
+  header h1{margin:0 0 4px;font-size:clamp(1rem, 4.6vw, 1.25rem);}
+  header p{margin:0;font-size:.8rem;opacity:.9;}
+  .theme-toggle{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .tabs{display:flex;max-width:560px;margin:16px auto 0;padding:0 14px;gap:8px;overflow-x:auto;}
+  .tab-btn{flex:0 0 auto;padding:10px 14px;border-radius:10px;background:var(--card);color:var(--muted);font-weight:600;font-size:.85rem;cursor:pointer;border:1px solid var(--border);white-space:nowrap;}
+  .tab-btn.active{background:var(--green);color:#fff;border-color:var(--green);}
+  main{max-width:560px;margin:14px auto 0;padding:0 14px;}
+  .panel{display:none;} .panel.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+  label{display:block;font-size:.82rem;color:var(--muted);margin:10px 0 5px;}
+  input, select, textarea{display:block;width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg);color:var(--text);font-family:inherit;}
+  textarea{resize:vertical;min-height:50px;}
+  input[type="color"]{padding:4px;height:44px;cursor:pointer;}
+  input[type="range"]{padding:0;}
+  .btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:600;font-size:.9rem;cursor:pointer;margin-top:10px;}
+  .btn.primary{background:var(--green);color:#fff;border-color:var(--green);}
+  .btn.gold{background:var(--gold);color:#3a2c00;border-color:var(--gold);}
+  .btn.danger{background:none;color:#e35a4f;border-color:#e35a4f;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .action-row{display:flex;gap:8px;}
+  .action-row .btn{flex:1;}
+  .toggle-row{display:flex;gap:8px;margin-top:6px;}
+  .toggle-row button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-weight:600;font-size:.82rem;cursor:pointer;}
+  .toggle-row button.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .canvas-wrap{display:flex;justify-content:center;margin:14px 0;position:relative;}
+  .checker-bg{background-image:linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0px;border-radius:12px;}
+  #workCanvas{max-width:100%;border-radius:12px;border:1px solid var(--border);touch-action:none;cursor:crosshair;}
+  .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:30px 14px;text-align:center;color:var(--muted);cursor:pointer;}
+  .upload-zone input{display:none;}
+  .slider-row{display:flex;align-items:center;gap:10px;margin-top:6px;}
+  .slider-row span{font-size:.78rem;color:var(--muted);min-width:34px;text-align:right;}
+  .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+  .preset-btn{padding:10px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;}
+  .preset-btn small{display:block;font-weight:400;color:var(--muted);font-size:.68rem;margin-top:2px;}
+  .preset-btn.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .preset-btn.active small{color:rgba(255,255,255,.85);}
+  .note-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:10px;}
+  .hidden{display:none !important;}
+  .size-status{font-size:.78rem;color:var(--muted);text-align:center;margin-top:8px;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+  .checkbox-row input{width:auto;display:inline;}
+  .pack-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;}
+  .pack-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);position:relative;}
+  .pack-item img{width:100%;display:block;}
+  .pack-item button{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.7rem;cursor:pointer;}
+  .pack-count{font-size:.85rem;color:var(--muted);margin-bottom:10px;}
+  .gallery-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;}
+  .gallery-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg);}
+  .gallery-item img{width:100%;display:block;}
+  .gallery-item-actions{display:flex;gap:6px;padding:6px 8px;}
+  .gallery-item-actions button{flex:1;padding:6px;font-size:.72rem;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;}
+  .empty-note{color:var(--muted);font-size:.85rem;text-align:center;padding:20px 0;grid-column:1 / -1;}
+  .clear-btn{width:100%;margin-top:10px;padding:11px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-weight:600;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+  <h1>✂️ Sticker Maker</h1>
+  <p>Cut out, style &amp; export sticker packs</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="create">Create</button>
+  <button class="tab-btn" data-tab="pack">Pack Builder</button>
+  <button class="tab-btn" data-tab="gallery">Gallery</button>
+</div>
+
+<main>
+  <!-- ============ CREATE PANEL ============ -->
+  <section class="panel active" id="panel-create">
+
+    <div class="card">
+      <label style="margin-top:0;">Start From</label>
+      <div class="toggle-row" id="sourceModeRow">
+        <button data-mode="photo" class="active">Photo</button>
+        <button data-mode="text">Text</button>
+      </div>
+    </div>
+
+    <!-- PHOTO UPLOAD -->
+    <div class="card" id="uploadCard">
+      <label class="upload-zone" id="uploadZone">
+        📷 Tap to choose a photo
+        <input type="file" id="fileInput" accept="image/*">
+      </label>
+    </div>
+
+    <!-- TEXT INPUT -->
+    <div class="card hidden" id="textCard">
+      <label style="margin-top:0;">Sticker Text</label>
+      <textarea id="stickerText" placeholder="LOL, Wahala!, Congrats..."></textarea>
+      <div class="row2">
+        <div>
+          <label style="margin-top:0;">Text Color</label>
+          <input type="color" id="textFillColor" value="#ffffff">
+        </div>
+        <div>
+          <label style="margin-top:0;">Outline Color</label>
+          <input type="color" id="textStrokeColor" value="#3d1e6d">
+        </div>
+      </div>
+      <label>Font Size: <span id="textFontSizeVal">90</span>px</label>
+      <input type="range" id="textFontSize" min="30" max="200" value="90">
+      <button class="btn primary" id="generateTextBtn">✨ Generate Text Sticker</button>
+    </div>
+
+    <!-- EDITOR (hidden until an image/text is loaded) -->
+    <div id="editorSection" class="hidden">
+      <div class="card">
+        <div class="canvas-wrap checker-bg">
+          <canvas id="workCanvas"></canvas>
+        </div>
+
+        <div class="row3">
+          <button class="btn" id="rotateLeftBtn" style="margin-top:0;">↺ Rotate</button>
+          <button class="btn" id="rotateRightBtn" style="margin-top:0;">↻ Rotate</button>
+          <button class="btn" id="flipHBtn" style="margin-top:0;">⇋ Flip</button>
+        </div>
+      </div>
+
+      <div class="card" id="photoOnlyControls">
+        <label style="margin-top:0;">Filters (apply before removing background)</label>
+        <label>Brightness: <span id="brightnessVal">100</span>%</label>
+        <input type="range" id="brightnessSlider" min="50" max="150" value="100">
+        <label>Contrast: <span id="contrastVal">100</span>%</label>
+        <input type="range" id="contrastSlider" min="50" max="150" value="100">
+        <label>Saturation: <span id="saturateVal">100</span>%</label>
+        <input type="range" id="saturateSlider" min="0" max="200" value="100">
+
+        <label style="margin-top:16px;">Background Removal</label>
+        <div class="slider-row">
+          <input type="range" id="toleranceSlider" min="5" max="120" value="45" style="flex:1;">
+          <span id="toleranceVal">45</span>
+        </div>
+        <div class="action-row">
+          <button class="btn primary" id="removeBgBtn">✨ Remove Background</button>
+          <button class="btn" id="resetBtn">↺ Reset Photo</button>
+        </div>
+
+        <label style="margin-top:16px;">Touch-Up Brush</label>
+        <div class="toggle-row" id="brushModeRow">
+          <button data-mode="erase" class="active">Erase</button>
+          <button data-mode="restore">Restore</button>
+        </div>
+        <div class="slider-row">
+          <span style="min-width:50px;">Size</span>
+          <input type="range" id="brushSize" min="4" max="60" value="18" style="flex:1;">
+          <span id="brushSizeVal">18</span>
+        </div>
+        <p style="font-size:.75rem;color:var(--muted);margin:6px 0 0;">Drag on the image above to manually clean up edges.</p>
+      </div>
+
+      <div class="card">
+        <div class="row2" style="align-items:center;">
+          <label style="margin:0;">Die-Cut Outline</label>
+          <div class="toggle-row" style="margin:0;">
+            <button id="outlineOffBtn" data-on="0" class="active">Off</button>
+            <button id="outlineOnBtn" data-on="1">On</button>
+          </div>
+        </div>
+        <div id="outlineOptions" class="hidden">
+          <div class="row2">
+            <div>
+              <label style="margin-top:0;">Color</label>
+              <input type="color" id="outlineColor" value="#ffffff">
+            </div>
+            <div>
+              <label style="margin-top:0;">Width: <span id="outlineWidthVal">10</span>px</label>
+              <input type="range" id="outlineWidth" min="2" max="30" value="10">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row2" style="align-items:center;">
+          <label style="margin:0;">Canvas Background</label>
+          <div class="toggle-row" style="margin:0;" id="canvasBgRow">
+            <button data-bg="transparent" class="active">None</button>
+            <button data-bg="solid">Solid</button>
+            <button data-bg="gradient">Gradient</button>
+          </div>
+        </div>
+        <div id="canvasBgColors" class="hidden">
+          <div class="row2">
+            <div>
+              <label style="margin-top:0;">Color 1</label>
+              <input type="color" id="canvasBgColor1" value="#3d1e6d">
+            </div>
+            <div id="canvasBgColor2Wrap" class="hidden">
+              <label style="margin-top:0;">Color 2</label>
+              <input type="color" id="canvasBgColor2" value="#e8b93f">
+            </div>
+          </div>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="watermarkToggle">
+          <label style="margin:0;" for="watermarkToggle">Add watermark</label>
+        </div>
+        <input type="text" id="watermarkText" placeholder="e.g. SIRRADDO" class="hidden" style="margin-top:8px;">
+      </div>
+
+      <div class="card">
+        <label style="margin-top:0;">Export For</label>
+        <div class="preset-grid" id="presetGrid"></div>
+        <div class="row2" style="margin-top:10px;">
+          <div class="checkbox-row" style="margin-top:0;">
+            <input type="checkbox" id="marginToggle">
+            <label style="margin:0;" for="marginToggle">Safe margin</label>
+          </div>
+          <select id="formatSelect">
+            <option value="png">PNG</option>
+            <option value="webp">WebP</option>
+          </select>
+        </div>
+        <div class="action-row">
+          <button class="btn gold" id="exportBtn">⬇️ Download</button>
+          <button class="btn primary" id="addToPackBtn">➕ Add to Pack</button>
+        </div>
+        <button class="btn" id="saveGalleryBtn">💾 Save to Gallery</button>
+        <div class="size-status" id="sizeStatus"></div>
+        <div class="note-box" id="presetNote"></div>
+      </div>
+
+      <button class="btn danger" id="startOverBtn" style="margin-bottom:10px;">Start Over</button>
+    </div>
+  </section>
+
+  <!-- ============ PACK BUILDER PANEL ============ -->
+  <section class="panel" id="panel-pack">
+    <div class="card">
+      <div class="pack-count" id="packCount">0 stickers in pack</div>
+      <div class="pack-grid" id="packGrid">
+        <p class="empty-note">No stickers added yet. In the Create tab, finish a sticker and tap "Add to Pack".</p>
+      </div>
+      <div class="note-box">WhatsApp sticker packs need 3–30 stickers. Telegram packs can be smaller.</div>
+      <button class="btn gold" id="downloadPackBtn">⬇️ Download Pack as ZIP</button>
+      <button class="clear-btn" id="clearPackBtn">Clear Pack</button>
+    </div>
+  </section>
+
+  <!-- ============ GALLERY PANEL ============ -->
+  <section class="panel" id="panel-gallery">
+    <div class="card">
+      <div class="gallery-grid" id="galleryGrid">
+        <p class="empty-note">No saved stickers yet.</p>
+      </div>
+      <button class="clear-btn" id="clearGalleryBtn">Clear All Saved</button>
+    </div>
+  </section>
+
+  <p style="font-size:.75rem;color:var(--muted);text-align:center;margin-top:6px;">Tip: "Add to Home Screen" from your browser menu to use this offline like a normal app (after first load).</p>
+</main>
+
+<script>
+  // ---- Theme ----
+  const themeToggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+  function applyTheme(t){
+    if(t === 'dark'){ root.setAttribute('data-theme','dark'); themeToggle.textContent = '☀️'; }
+    else { root.removeAttribute('data-theme'); themeToggle.textContent = '🌙'; }
+  }
+  applyTheme(localStorage.getItem('sticker-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  themeToggle.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem('sticker-theme', next);
+  });
+
+  // ---- Tabs ----
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab === 'pack') renderPack();
+      if(btn.dataset.tab === 'gallery') renderGallery();
+    });
+  });
+
+  // ================= VERIFIED CORE PIXEL ALGORITHMS =================
+  function colorDist(r1,g1,b1,r2,g2,b2){
+    return Math.sqrt((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2);
+  }
+
+  function removeBackgroundFloodFill(data, width, height, tolerance){
+    const corners = [[0,0],[width-1,0],[0,height-1],[width-1,height-1]];
+    let sr=0, sg=0, sb=0;
+    corners.forEach(([x,y]) => {
+      const i = (y*width+x)*4;
+      sr += data[i]; sg += data[i+1]; sb += data[i+2];
+    });
+    const bgR = sr/4, bgG = sg/4, bgB = sb/4;
+    const visited = new Uint8Array(width*height);
+    const queue = [];
+    function tryEnqueue(x, y){
+      if(x < 0 || x >= width || y < 0 || y >= height) return;
+      const idx = y*width+x;
+      if(visited[idx]) return;
+      visited[idx] = 1;
+      const i = idx*4;
+      if(colorDist(data[i], data[i+1], data[i+2], bgR, bgG, bgB) <= tolerance){
+        data[i+3] = 0;
+        queue.push([x,y]);
+      }
+    }
+    for(let x = 0; x < width; x++){ tryEnqueue(x, 0); tryEnqueue(x, height-1); }
+    for(let y = 0; y < height; y++){ tryEnqueue(0, y); tryEnqueue(width-1, y); }
+    while(queue.length){
+      const [x, y] = queue.pop();
+      tryEnqueue(x+1,y); tryEnqueue(x-1,y); tryEnqueue(x,y+1); tryEnqueue(x,y-1);
+    }
+  }
+
+  function getContentBoundingBox(data, width, height, alphaThreshold){
+    let minX = width, minY = height, maxX = -1, maxY = -1;
+    for(let y = 0; y < height; y++){
+      for(let x = 0; x < width; x++){
+        if(data[(y*width+x)*4+3] > alphaThreshold){
+          if(x < minX) minX = x;
+          if(x > maxX) maxX = x;
+          if(y < minY) minY = y;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < 0) return null;
+    return { x:minX, y:minY, width:maxX-minX+1, height:maxY-minY+1 };
+  }
+
+  // ================= VERIFIED ZIP WRITER (store/uncompressed, tested against real `unzip`) =================
+  function crc32(data){
+    let table = crc32.table;
+    if(!table){
+      table = crc32.table = new Uint32Array(256);
+      for(let n = 0; n < 256; n++){
+        let c = n;
+        for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        table[n] = c >>> 0;
+      }
+    }
+    let crc = 0xFFFFFFFF;
+    for(let i = 0; i < data.length; i++) crc = table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function dosDateTime(date){
+    const time = ((date.getHours() & 0x1F) << 11) | ((date.getMinutes() & 0x3F) << 5) | ((date.getSeconds() >> 1) & 0x1F);
+    const dosDate = (((date.getFullYear() - 1980) & 0x7F) << 9) | (((date.getMonth() + 1) & 0xF) << 5) | (date.getDate() & 0x1F);
+    return { time, dosDate };
+  }
+
+  function createZip(files){
+    const { time, dosDate } = dosDateTime(new Date());
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+
+    files.forEach(file => {
+      const nameBytes = new TextEncoder().encode(file.name);
+      const data = file.data;
+      const crc = crc32(data);
+      const size = data.length;
+
+      const local = new Uint8Array(30 + nameBytes.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, time, true);
+      lv.setUint16(12, dosDate, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+      localParts.push(local, data);
+
+      const central = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(central.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, time, true);
+      cv.setUint16(14, dosDate, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      central.set(nameBytes, 46);
+      centralParts.push(central);
+
+      offset += local.length + data.length;
+    });
+
+    const centralDirStart = offset;
+    let centralDirSize = 0;
+    centralParts.forEach(c => centralDirSize += c.length);
+
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralDirSize, true);
+    ev.setUint32(16, centralDirStart, true);
+    ev.setUint16(20, 0, true);
+
+    const allParts = [...localParts, ...centralParts, end];
+    const totalLen = allParts.reduce((s, p) => s + p.length, 0);
+    const result = new Uint8Array(totalLen);
+    let pos = 0;
+    allParts.forEach(p => { result.set(p, pos); pos += p.length; });
+    return result;
+  }
+
+  // ================= APP STATE =================
+  const workCanvas = document.getElementById('workCanvas');
+  const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+  let originalImageBitmap = null;
+  let sourceMode = 'photo';
+  const MAX_WORK_DIM = 900;
+
+  function fitCanvasDisplay(){
+    const w = workCanvas.width;
+    const displayScale = Math.min(1, (Math.min(360, window.innerWidth - 60)) / w);
+    workCanvas.style.width = Math.round(w * displayScale) + 'px';
+  }
+
+  function showEditor(){
+    document.getElementById('uploadCard').classList.add('hidden');
+    document.getElementById('textCard').classList.add('hidden');
+    document.getElementById('editorSection').classList.remove('hidden');
+  }
+
+  // ---- Source mode toggle ----
+  document.querySelectorAll('#sourceModeRow button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sourceMode = btn.dataset.mode;
+      document.querySelectorAll('#sourceModeRow button').forEach(b => b.classList.toggle('active', b === btn));
+      document.getElementById('uploadCard').classList.toggle('hidden', sourceMode !== 'photo');
+      document.getElementById('textCard').classList.toggle('hidden', sourceMode !== 'text');
+      document.getElementById('editorSection').classList.add('hidden');
+      document.getElementById('photoOnlyControls').classList.toggle('hidden', sourceMode !== 'photo');
+    });
+  });
+
+  // ---- Photo upload ----
+  function applyFiltersAndDraw(){
+    const w = workCanvas.width, h = workCanvas.height;
+    const b = document.getElementById('brightnessSlider').value;
+    const c = document.getElementById('contrastSlider').value;
+    const s = document.getElementById('saturateSlider').value;
+    workCtx.save();
+    workCtx.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
+    workCtx.clearRect(0, 0, w, h);
+    workCtx.drawImage(originalImageBitmap, 0, 0, w, h);
+    workCtx.restore();
+  }
+
+  function loadImageOntoWorkCanvas(img){
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, MAX_WORK_DIM / Math.max(w, h));
+    w = Math.round(w * scale); h = Math.round(h * scale);
+    workCanvas.width = w; workCanvas.height = h;
+    fitCanvasDisplay();
+    workCtx.clearRect(0, 0, w, h);
+    workCtx.drawImage(img, 0, 0, w, h);
+    showEditor();
+  }
+
+  document.getElementById('uploadZone').addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+      originalImageBitmap = img;
+      loadImageOntoWorkCanvas(img);
+      document.getElementById('brightnessSlider').value = 100;
+      document.getElementById('contrastSlider').value = 100;
+      document.getElementById('saturateSlider').value = 100;
+      document.getElementById('brightnessVal').textContent = 100;
+      document.getElementById('contrastVal').textContent = 100;
+      document.getElementById('saturateVal').textContent = 100;
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  ['brightnessSlider','contrastSlider','saturateSlider'].forEach(id => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      const labelId = id.replace('Slider','Val');
+      document.getElementById(labelId).textContent = e.target.value;
+      if(originalImageBitmap) applyFiltersAndDraw();
+    });
+  });
+
+  // ---- Text sticker generation ----
+  document.getElementById('textFontSize').addEventListener('input', (e) => {
+    document.getElementById('textFontSizeVal').textContent = e.target.value;
+  });
+
+  document.getElementById('generateTextBtn').addEventListener('click', () => {
+    const text = document.getElementById('stickerText').value.trim();
+    if(!text){ alert('Type some text first.'); return; }
+    const size = 700;
+    workCanvas.width = size; workCanvas.height = size;
+    fitCanvasDisplay();
+    workCtx.clearRect(0, 0, size, size);
+
+    const fontSize = Number(document.getElementById('textFontSize').value);
+    const fillColor = document.getElementById('textFillColor').value;
+    const strokeColor = document.getElementById('textStrokeColor').value;
+
+    workCtx.font = `bold ${fontSize}px -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+    workCtx.textAlign = 'center';
+    workCtx.textBaseline = 'middle';
+    workCtx.lineJoin = 'round';
+    workCtx.lineWidth = fontSize * 0.18;
+    workCtx.strokeStyle = strokeColor;
+    workCtx.fillStyle = fillColor;
+
+    const maxWidth = size * 0.86;
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach(word => {
+      const test = line ? line + ' ' + word : word;
+      if(workCtx.measureText(test).width > maxWidth && line){
+        lines.push(line); line = word;
+      } else { line = test; }
+    });
+    lines.push(line);
+
+    const lineHeight = fontSize * 1.15;
+    const startY = size/2 - ((lines.length-1) * lineHeight)/2;
+    lines.forEach((l, i) => {
+      const y = startY + i * lineHeight;
+      workCtx.strokeText(l, size/2, y);
+      workCtx.fillText(l, size/2, y);
+    });
+
+    originalImageBitmap = null;
+    showEditor();
+  });
+
+  document.getElementById('startOverBtn').addEventListener('click', () => {
+    document.getElementById('editorSection').classList.add('hidden');
+    document.getElementById('uploadCard').classList.toggle('hidden', sourceMode !== 'photo');
+    document.getElementById('textCard').classList.toggle('hidden', sourceMode !== 'text');
+    document.getElementById('fileInput').value = '';
+    originalImageBitmap = null;
+  });
+
+  // ---- Rotate / Flip ----
+  function transformCanvas(drawFn, swapDims){
+    const w = workCanvas.width, h = workCanvas.height;
+    const newW = swapDims ? h : w, newH = swapDims ? w : h;
+    const temp = document.createElement('canvas');
+    temp.width = newW; temp.height = newH;
+    const tctx = temp.getContext('2d');
+    drawFn(tctx, w, h);
+    workCanvas.width = newW; workCanvas.height = newH;
+    workCtx.clearRect(0, 0, newW, newH);
+    workCtx.drawImage(temp, 0, 0);
+    fitCanvasDisplay();
+  }
+  document.getElementById('rotateLeftBtn').addEventListener('click', () => {
+    transformCanvas((tctx, w, h) => {
+      tctx.translate(0, w);
+      tctx.rotate(-Math.PI/2);
+      tctx.drawImage(workCanvas, 0, 0);
+    }, true);
+  });
+  document.getElementById('rotateRightBtn').addEventListener('click', () => {
+    transformCanvas((tctx, w, h) => {
+      tctx.translate(h, 0);
+      tctx.rotate(Math.PI/2);
+      tctx.drawImage(workCanvas, 0, 0);
+    }, true);
+  });
+  document.getElementById('flipHBtn').addEventListener('click', () => {
+    transformCanvas((tctx, w, h) => {
+      tctx.translate(w, 0);
+      tctx.scale(-1, 1);
+      tctx.drawImage(workCanvas, 0, 0);
+    }, false);
+  });
+
+  // ---- Background removal ----
+  const toleranceSlider = document.getElementById('toleranceSlider');
+  toleranceSlider.addEventListener('input', () => {
+    document.getElementById('toleranceVal').textContent = toleranceSlider.value;
+  });
+  document.getElementById('removeBgBtn').addEventListener('click', () => {
+    const w = workCanvas.width, h = workCanvas.height;
+    const imgData = workCtx.getImageData(0, 0, w, h);
+    removeBackgroundFloodFill(imgData.data, w, h, Number(toleranceSlider.value));
+    workCtx.putImageData(imgData, 0, 0);
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if(originalImageBitmap) loadImageOntoWorkCanvas(originalImageBitmap);
+  });
+
+  // ---- Touch-up brush ----
+  let brushMode = 'erase';
+  document.querySelectorAll('#brushModeRow button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      brushMode = btn.dataset.mode;
+      document.querySelectorAll('#brushModeRow button').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+  const brushSizeEl = document.getElementById('brushSize');
+  brushSizeEl.addEventListener('input', () => {
+    document.getElementById('brushSizeVal').textContent = brushSizeEl.value;
+  });
+  let isDrawing = false;
+  function canvasCoordsFromEvent(e){
+    const rect = workCanvas.getBoundingClientRect();
+    const scaleX = workCanvas.width / rect.width;
+    const scaleY = workCanvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+  function applyBrush(x, y){
+    const w = workCanvas.width, h = workCanvas.height;
+    const radius = Number(brushSizeEl.value);
+    const imgData = workCtx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const minX = Math.max(0, Math.floor(x - radius)), maxX = Math.min(w-1, Math.ceil(x + radius));
+    const minY = Math.max(0, Math.floor(y - radius)), maxY = Math.min(h-1, Math.ceil(y + radius));
+    for(let py = minY; py <= maxY; py++){
+      for(let px = minX; px <= maxX; px++){
+        if((px-x)**2 + (py-y)**2 <= radius*radius){
+          data[(py*w+px)*4 + 3] = brushMode === 'erase' ? 0 : 255;
+        }
+      }
+    }
+    workCtx.putImageData(imgData, 0, 0);
+  }
+  ['mousedown','touchstart'].forEach(evt => workCanvas.addEventListener(evt, (e) => {
+    e.preventDefault(); isDrawing = true;
+    const { x, y } = canvasCoordsFromEvent(e);
+    applyBrush(x, y);
+  }));
+  ['mousemove','touchmove'].forEach(evt => workCanvas.addEventListener(evt, (e) => {
+    if(!isDrawing) return;
+    e.preventDefault();
+    const { x, y } = canvasCoordsFromEvent(e);
+    applyBrush(x, y);
+  }));
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => workCanvas.addEventListener(evt, () => { isDrawing = false; }));
+
+  // ---- Outline toggle ----
+  let outlineOn = false;
+  document.getElementById('outlineOffBtn').addEventListener('click', () => {
+    outlineOn = false;
+    document.getElementById('outlineOffBtn').classList.add('active');
+    document.getElementById('outlineOnBtn').classList.remove('active');
+    document.getElementById('outlineOptions').classList.add('hidden');
+  });
+  document.getElementById('outlineOnBtn').addEventListener('click', () => {
+    outlineOn = true;
+    document.getElementById('outlineOnBtn').classList.add('active');
+    document.getElementById('outlineOffBtn').classList.remove('active');
+    document.getElementById('outlineOptions').classList.remove('hidden');
+  });
+  document.getElementById('outlineWidth').addEventListener('input', (e) => {
+    document.getElementById('outlineWidthVal').textContent = e.target.value;
+  });
+
+  // ---- Canvas background (behind the cutout at export time) ----
+  let canvasBgType = 'transparent';
+  document.querySelectorAll('#canvasBgRow button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      canvasBgType = btn.dataset.bg;
+      document.querySelectorAll('#canvasBgRow button').forEach(b => b.classList.toggle('active', b === btn));
+      document.getElementById('canvasBgColors').classList.toggle('hidden', canvasBgType === 'transparent');
+      document.getElementById('canvasBgColor2Wrap').classList.toggle('hidden', canvasBgType !== 'gradient');
+    });
+  });
+
+  // ---- Watermark ----
+  document.getElementById('watermarkToggle').addEventListener('change', (e) => {
+    document.getElementById('watermarkText').classList.toggle('hidden', !e.target.checked);
+  });
+
+  // ================= EXPORT PRESETS =================
+  const PRESETS = [
+    { id: 'whatsapp', label: 'WhatsApp', size: 512, margin: 16, maxKB: 100, note: 'WhatsApp stickers must be exactly 512×512px, ideally under 100KB. WhatsApp officially requires WebP for the final upload.' },
+    { id: 'telegram', label: 'Telegram', size: 512, margin: 0, maxKB: 512, note: 'Telegram wants one side exactly 512px (square recommended), PNG or WebP, transparent background, under 512KB.' },
+    { id: 'signal', label: 'Signal', size: 512, margin: 16, maxKB: null, note: 'Signal recommends 512×512px with a transparent background and a 16px margin, as PNG or WebP.' },
+    { id: 'imessage', label: 'iMessage', size: 618, margin: 0, maxKB: null, note: "Apple's large iMessage sticker size is 618×618px, transparent PNG." },
+    { id: 'discord-sticker', label: 'Discord Sticker', size: 320, margin: 0, maxKB: 512, note: 'Discord server stickers are 320×320px, PNG/APNG, under 512KB.' },
+    { id: 'discord-emoji', label: 'Discord Emoji', size: 128, margin: 0, maxKB: 256, note: 'Discord emoji are 128×128px, under 256KB.' },
+    { id: 'messenger', label: 'Messenger', size: 512, margin: 0, maxKB: null, note: "Messenger doesn't publish as strict a spec — 512×512px transparent PNG is a safe default." },
+    { id: 'tiktok', label: 'TikTok', size: 1080, margin: 0, maxKB: null, note: "TikTok has no formal sticker-pack system — you add images inside TikTok's own editor. 1080×1080px transparent PNG is a safe, high-res default." }
+  ];
+
+  let selectedPreset = PRESETS[0];
+  const presetGrid = document.getElementById('presetGrid');
+  PRESETS.forEach((p, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (idx === 0 ? ' active' : '');
+    btn.innerHTML = `${p.label}<small>${p.size}×${p.size}px</small>`;
+    btn.addEventListener('click', () => {
+      selectedPreset = p;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('marginToggle').checked = p.margin > 0;
+      updatePresetNote();
+    });
+    presetGrid.appendChild(btn);
+  });
+  document.getElementById('marginToggle').checked = PRESETS[0].margin > 0;
+  function updatePresetNote(){ document.getElementById('presetNote').textContent = selectedPreset.note; }
+  updatePresetNote();
+
+  function buildExportCanvas(){
+    const w = workCanvas.width, h = workCanvas.height;
+    const imgData = workCtx.getImageData(0, 0, w, h);
+    const box = getContentBoundingBox(imgData.data, w, h, 10) || { x:0, y:0, width:w, height:h };
+
+    const target = selectedPreset.size;
+    const margin = document.getElementById('marginToggle').checked ? selectedPreset.margin : 0;
+    const drawArea = target - margin * 2;
+    const scale = Math.min(drawArea / box.width, drawArea / box.height);
+    const destW = box.width * scale, destH = box.height * scale;
+    const destX = (target - destW) / 2, destY = (target - destH) / 2;
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = box.width; cropCanvas.height = box.height;
+    cropCanvas.getContext('2d').putImageData(imgData, -box.x, -box.y, box.x, box.y, box.width, box.height);
+
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = target; outCanvas.height = target;
+    const outCtx = outCanvas.getContext('2d');
+
+    if(canvasBgType === 'solid'){
+      outCtx.fillStyle = document.getElementById('canvasBgColor1').value;
+      outCtx.fillRect(0, 0, target, target);
+    } else if(canvasBgType === 'gradient'){
+      const grad = outCtx.createLinearGradient(0, 0, target, target);
+      grad.addColorStop(0, document.getElementById('canvasBgColor1').value);
+      grad.addColorStop(1, document.getElementById('canvasBgColor2').value);
+      outCtx.fillStyle = grad;
+      outCtx.fillRect(0, 0, target, target);
+    }
+
+    if(outlineOn){
+      const outlineWidthPx = Number(document.getElementById('outlineWidth').value) * scale;
+      const silCanvas = document.createElement('canvas');
+      silCanvas.width = Math.round(destW); silCanvas.height = Math.round(destH);
+      const silCtx = silCanvas.getContext('2d');
+      silCtx.drawImage(cropCanvas, 0, 0, box.width, box.height, 0, 0, destW, destH);
+      silCtx.globalCompositeOperation = 'source-in';
+      silCtx.fillStyle = document.getElementById('outlineColor').value;
+      silCtx.fillRect(0, 0, destW, destH);
+      const steps = 28;
+      for(let k = 0; k < steps; k++){
+        const angle = (k / steps) * Math.PI * 2;
+        outCtx.drawImage(silCanvas, destX + Math.cos(angle)*outlineWidthPx, destY + Math.sin(angle)*outlineWidthPx);
+      }
+    }
+
+    outCtx.drawImage(cropCanvas, 0, 0, box.width, box.height, destX, destY, destW, destH);
+
+    if(document.getElementById('watermarkToggle').checked){
+      const wmText = document.getElementById('watermarkText').value.trim();
+      if(wmText){
+        const wmSize = target * 0.045;
+        outCtx.font = `bold ${wmSize}px -apple-system, sans-serif`;
+        outCtx.textAlign = 'right';
+        outCtx.textBaseline = 'bottom';
+        outCtx.fillStyle = 'rgba(255,255,255,0.75)';
+        outCtx.strokeStyle = 'rgba(0,0,0,0.4)';
+        outCtx.lineWidth = 2;
+        const pad = target * 0.03;
+        outCtx.strokeText(wmText, target - pad, target - pad);
+        outCtx.fillText(wmText, target - pad, target - pad);
+      }
+    }
+
+    return outCanvas;
+  }
+
+  function exportCurrentSticker(callback){
+    const outCanvas = buildExportCanvas();
+    const format = document.getElementById('formatSelect').value;
+    const mime = format === 'webp' ? 'image/webp' : 'image/png';
+    outCanvas.toBlob((blob) => {
+      if(!blob){ alert('Could not generate the image.'); return; }
+      if(format === 'webp'){
+        const testUrl = outCanvas.toDataURL('image/webp');
+        if(!testUrl.startsWith('data:image/webp')){
+          alert("Your browser doesn't support exporting WebP directly — using PNG instead.");
+        }
+      }
+      callback(blob, outCanvas);
+    }, mime, 0.92);
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    exportCurrentSticker((blob) => {
+      const sizeKB = Math.round(blob.size / 1024);
+      let statusMsg = `${selectedPreset.size}×${selectedPreset.size}px · ${sizeKB}KB`;
+      if(selectedPreset.maxKB && sizeKB > selectedPreset.maxKB){
+        statusMsg += ` ⚠️ over the ${selectedPreset.maxKB}KB ${selectedPreset.label} limit.`;
+      }
+      document.getElementById('sizeStatus').textContent = statusMsg;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sticker-${selectedPreset.id}-${Date.now()}.${document.getElementById('formatSelect').value}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  });
+
+  // ================= PACK BUILDER =================
+  const PACK_KEY = 'sticker-pack-queue';
+  function loadPack(){ try{ return JSON.parse(localStorage.getItem(PACK_KEY)) || []; }catch(e){ return []; } }
+  function persistPack(list){ localStorage.setItem(PACK_KEY, JSON.stringify(list)); }
+
+  document.getElementById('addToPackBtn').addEventListener('click', () => {
+    exportCurrentSticker((blob, canvas) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const list = loadPack();
+        list.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), dataUrl: reader.result });
+        persistPack(list.slice(0, 30));
+        alert(`Added to pack (${list.length} sticker${list.length===1?'':'s'} total).`);
+      };
+      reader.readAsDataURL(blob);
+    });
+  });
+
+  function renderPack(){
+    const list = loadPack();
+    document.getElementById('packCount').textContent = `${list.length} sticker${list.length===1?'':'s'} in pack`;
+    const grid = document.getElementById('packGrid');
+    if(list.length === 0){
+      grid.innerHTML = '<p class="empty-note">No stickers added yet. In the Create tab, finish a sticker and tap "Add to Pack".</p>';
+      return;
+    }
+    grid.innerHTML = list.map(item => `
+      <div class="pack-item">
+        <img src="${item.dataUrl}" alt="sticker">
+        <button data-id="${item.id}">✕</button>
+      </div>
+    `).join('');
+    grid.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        persistPack(loadPack().filter(x => x.id !== btn.dataset.id));
+        renderPack();
+      });
+    });
+  }
+
+  document.getElementById('clearPackBtn').addEventListener('click', () => {
+    if(confirm('Clear the whole pack?')){ persistPack([]); renderPack(); }
+  });
+
+  document.getElementById('downloadPackBtn').addEventListener('click', async () => {
+    const list = loadPack();
+    if(list.length === 0){ alert('Pack is empty — add some stickers first.'); return; }
+    const files = await Promise.all(list.map(async (item, idx) => {
+      const res = await fetch(item.dataUrl);
+      const buf = await res.arrayBuffer();
+      return { name: `sticker-${idx + 1}.png`, data: new Uint8Array(buf) };
+    }));
+    const zipBytes = createZip(files);
+    const blob = new Blob([zipBytes], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sticker-pack-${Date.now()}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ================= GALLERY =================
+  const GALLERY_KEY = 'sticker-gallery';
+  function loadGallery(){ try{ return JSON.parse(localStorage.getItem(GALLERY_KEY)) || []; }catch(e){ return []; } }
+  function persistGallery(list){ localStorage.setItem(GALLERY_KEY, JSON.stringify(list)); }
+
+  document.getElementById('saveGalleryBtn').addEventListener('click', () => {
+    exportCurrentSticker((blob) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const list = loadGallery();
+        list.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), dataUrl: reader.result, date: new Date().toISOString() });
+        persistGallery(list.slice(0, 40));
+        alert('Saved to Gallery.');
+      };
+      reader.readAsDataURL(blob);
+    });
+  });
+
+  function renderGallery(){
+    const list = loadGallery();
+    const grid = document.getElementById('galleryGrid');
+    if(list.length === 0){
+      grid.innerHTML = '<p class="empty-note">No saved stickers yet.</p>';
+      return;
+    }
+    grid.innerHTML = list.map(item => `
+      <div class="gallery-item">
+        <img src="${item.dataUrl}" alt="sticker">
+        <div class="gallery-item-actions">
+          <button data-action="load" data-id="${item.id}">Edit</button>
+          <button data-action="download" data-id="${item.id}">⬇️</button>
+          <button data-action="delete" data-id="${item.id}">✕</button>
+        </div>
+      </div>
+    `).join('');
+    grid.querySelectorAll('[data-action="load"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = list.find(x => x.id === btn.dataset.id);
+        const img = new Image();
+        img.onload = () => {
+          originalImageBitmap = null;
+          workCanvas.width = img.width; workCanvas.height = img.height;
+          fitCanvasDisplay();
+          workCtx.clearRect(0, 0, img.width, img.height);
+          workCtx.drawImage(img, 0, 0);
+          showEditor();
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'create'));
+          document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-create'));
+        };
+        img.src = item.dataUrl;
+      });
+    });
+    grid.querySelectorAll('[data-action="download"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = list.find(x => x.id === btn.dataset.id);
+        const a = document.createElement('a');
+        a.href = item.dataUrl;
+        a.download = `sticker-${btn.dataset.id}.png`;
+        a.click();
+      });
+    });
+    grid.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        persistGallery(loadGallery().filter(x => x.id !== btn.dataset.id));
+        renderGallery();
+      });
+    });
+  }
+
+  document.getElementById('clearGalleryBtn').addEventListener('click', () => {
+    if(confirm('Delete all saved stickers? This cannot be undone.')){
+      persistGallery([]);
+      renderGallery();
+    }
+  });
+
+  // ---- PWA service worker ----
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+</script>
+
+</body>
+</html>
